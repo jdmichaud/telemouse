@@ -1,0 +1,13 @@
+.{
+    .name = .telemouse,
+    .version = "0.1.0",
+    .fingerprint = 0xae75d1202bc81985,
+    .minimum_zig_version = "0.17.0-dev.1158",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "README.md",
+    },
+}

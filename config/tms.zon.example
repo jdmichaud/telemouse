@@ -1,0 +1,36 @@
+// Example telemouse server configuration.
+//
+// Copy this file to one of the following locations (the first that applies):
+//   $XDG_CONFIG_HOME/telemouse/tms.zon
+//   ~/.config/telemouse/tms.zon          (Linux/macOS)
+//   %APPDATA%\telemouse\tms.zon          (Windows)
+//
+// or point the server at it explicitly with:  tms --config path/to/tms.zon
+//
+// Every field is optional; the values shown here are the built-in defaults.
+// Command-line options override anything set here.
+.{
+    // Address and port to listen on.
+    .addr = "0.0.0.0",
+    .port = 24800,
+
+    // Logging: level is one of silent|error|warn|info|debug.
+    .log_level = "info",
+    // Set to a path to append logs to a file instead of stdout.
+    .log_file = null,
+    // Set to true to log to the system logger (Linux only).
+    .syslog = false,
+
+    // Screen geometry, used on Linux to map `mouse x y` pixel coordinates onto
+    // the virtual absolute pointer. Set these to your real display resolution.
+    // Ignored on Windows (SetCursorPos takes pixels directly).
+    .screen_width = 1920,
+    .screen_height = 1080,
+
+    // Name of the virtual input device created on Linux.
+    .device_name = "telemouse virtual input",
+
+    // When true, commands are logged but no real input is emitted. Handy for
+    // testing without a display or the required device permissions.
+    .dry_run = false,
+}

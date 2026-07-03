@@ -1,0 +1,4 @@
+# Grant the "input" group read/write access to /dev/uinput so the telemouse
+# server (tms) can create its virtual input device without running as root.
+# Install to /etc/udev/rules.d/ and reload (see install.sh --server).
+KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"

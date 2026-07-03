@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Linux client links libX11 (the configuration UI window).
+      - name: Install libX11
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          # Pin to the dev build the codebase targets (std is still moving).
+          version: 0.17.0-dev.1158+1d1193aa7
+
+      - name: Build (native)
+        run: zig build
+
+      - name: Cross-compile (Windows)
+        run: zig build -Dtarget=x86_64-windows
+
+      - name: Test
+        run: zig build test

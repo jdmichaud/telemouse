@@ -1,0 +1,23 @@
+# systemd unit for the telemouse server (tms).
+#
+# Install to /etc/systemd/system/ then:  systemctl enable --now telemouse-server
+# (install.sh --server does this, and creates the 'telemouse' user + udev rule).
+
+[Unit]
+Description=telemouse server — remote mouse/keyboard input over the LAN
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/tms
+Restart=on-failure
+RestartSec=2
+
+# tms needs /dev/uinput. Rather than root, run as a dedicated system user that
+# is a member of the 'input' group (granted access by the udev rule).
+User=telemouse
+SupplementaryGroups=input
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,50 @@
+// Example telemouse client configuration.
+//
+// Copy this file to one of the following locations (the first that applies):
+//   $XDG_CONFIG_HOME/telemouse/tmc.zon
+//   ~/.config/telemouse/tmc.zon          (Linux/macOS)
+//   %APPDATA%\telemouse\tmc.zon          (Windows)
+//
+// or point the client at it explicitly with:  tmc --config path/to/tmc.zon
+//
+// Every field is optional; the values shown here are the built-in defaults.
+// Command-line options override anything set here.
+.{
+    // Default server to send commands to (used by -e and stdin modes).
+    .addr = "127.0.0.1",
+    // Server port, and the port discovery broadcasts are sent to.
+    .port = 24800,
+
+    // Logging: level is one of silent|error|warn|info|debug.
+    .log_level = "info",
+    // Set to a path to append logs to a file instead of stdout.
+    .log_file = null,
+    // Set to true to log to the system logger (Linux only).
+    .syslog = false,
+
+    // How long (milliseconds) a discovery scan waits for replies.
+    .discover_timeout_ms = 600,
+
+    // (The client's own screen resolution is auto-detected from the display; it
+    // is not configured here. In `.screens` below it is the first entry.)
+
+    // Edge switching (Synergy-style): push the pointer off an edge to hand
+    // mouse and keyboard control to the neighbour server on that side. Each is
+    // an "ip:port"; null means that edge does nothing.
+    .left = null, // e.g. "192.168.1.20:24800"
+    .right = null,
+    .top = null,
+    .bottom = null,
+
+    // The full screen lattice, normally written by `tmc --configure`. When
+    // present it supersedes the four-edge shorthand above and lets screens be
+    // arranged freely (chains, grids, offset neighbours). The first entry (no
+    // `addr`) is this machine; the rest are neighbour servers, positioned in
+    // shared virtual-desktop pixel space.
+    //
+    // .screens = .{
+    //     .{ .name = "this pc", .x = 0, .y = 0, .w = 1920, .h = 1080 },
+    //     .{ .name = "htpc",   .addr = "192.168.1.5:24800", .x = 1920, .y = 0, .w = 1920, .h = 1080 },
+    //     .{ .name = "studio", .addr = "192.168.1.9:24800", .x = 0, .y = 1080, .w = 2560, .h = 1440 },
+    // },
+}
