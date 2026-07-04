@@ -7,7 +7,10 @@
         // The win32-compatible UI library the config UI is being moved to:
         // on Linux it is ween32's software renderer + X11 backend, on Windows
         // the same API resolves to the real user32/gdi32.
-        .ween32 = .{ .path = "../ween32" },
+        .ween32 = .{
+            .url = "git+https://github.com/jdmichaud/ween32.git#d6116314dc55cb2b8a14e76e39fe11d16b307c55",
+            .hash = "ween32-0.1.0-jgasIHXAIQCWU-EsFrgH3iVpG4JM362vrCRsk8zwgHLr",
+        },
     },
     .paths = .{
         "build.zig",
