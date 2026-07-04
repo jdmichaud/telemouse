@@ -10,15 +10,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The Linux client links libX11 (the configuration UI window).
-      - name: Install libX11
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev
+      # The Linux binaries link Xlib (config UI + cursor tracking), XFixes
+      # (cursor hide/show) and Xi (XInput2 capture). libXtst is loaded at
+      # runtime via dlopen, so it needs no -dev package to build.
+      - name: Install X libraries
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxfixes-dev libxi-dev
 
       - name: Install Zig
         uses: mlugg/setup-zig@v1
         with:
-          # Pin to the dev build the codebase targets (std is still moving).
-          version: 0.17.0-dev.1158+1d1193aa7
+          # Track Zig master. The codebase uses in-development std.Io APIs (no
+          # tagged release has them), and specific nightly builds are pruned from
+          # ziglang.org/builds and the mirrors after a while, so a pinned
+          # dev version eventually 404s everywhere. Master is always fetchable;
+          # the trade-off is a breaking change in Zig can turn CI red until the
+          # code catches up.
+          version: master
 
       - name: Build (native)
         run: zig build
