@@ -55,6 +55,7 @@ fn wndProc(hwnd: w.HWND, msg: w.UINT, wp: w.WPARAM, lp: w.LPARAM) callconv(.c) w
 test "ween32 from zig: window, paint, button click, message loop" {
     if (builtin.os.tag != .linux) return error.SkipZigTest;
     _ = setenv("WEEN32_HEADLESS", "1", 1);
+    _ = setenv("WEEN32_DPI", "96", 1); // the asserts below are 96-dpi pixels
     // click the OK button: client (20,20)+37,11 -> window coords (+3,+23)
     _ = setenv("WEEN32_SCRIPT", "d:60,54 u:60,54", 1);
 
