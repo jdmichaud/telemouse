@@ -4,6 +4,11 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // ween32: the win32-compatible UI library (software renderer + X11 on
+    // Linux; the real user32/gdi32 on Windows). The config UI runs on it.
+    const ween32 = b.dependency("ween32", .{ .target = target, .optimize = optimize });
+    const ween32_mod = ween32.module("ween32");
+
     // ---- tms: the server -------------------------------------------------
     const tms = b.addExecutable(.{
         .name = "tms",
@@ -52,6 +57,7 @@ pub fn build(b: *std.Build) void {
         tmc.root_module.linkSystemLibrary("Xfixes", .{});
         tmc.root_module.linkSystemLibrary("Xi", .{});
     }
+    tmc.root_module.addImport("ween32", ween32_mod);
     b.installArtifact(tmc);
 
     // ---- run steps -------------------------------------------------------
@@ -83,6 +89,7 @@ pub fn build(b: *std.Build) void {
         "src/ui/canvas.zig",
         "src/ui/marlett.zig",
         "src/configui_test.zig",
+        "src/ween32_smoke_test.zig",
     };
     for (test_files) |path| {
         const mod = b.createModule(.{
@@ -94,6 +101,10 @@ pub fn build(b: *std.Build) void {
         if (std.mem.eql(u8, path, "src/configui_test.zig") and target.result.os.tag == .linux) {
             mod.link_libc = true;
             mod.linkSystemLibrary("X11", .{});
+        }
+        // the ween32 smoke test drives the win32 API headless
+        if (std.mem.eql(u8, path, "src/ween32_smoke_test.zig")) {
+            mod.addImport("ween32", ween32_mod);
         }
         const t = b.addTest(.{ .root_module = mod });
         test_step.dependOn(&b.addRunArtifact(t).step);

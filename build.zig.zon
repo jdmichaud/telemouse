@@ -3,7 +3,12 @@
     .version = "0.1.0",
     .fingerprint = 0xae75d1202bc81985,
     .minimum_zig_version = "0.17.0-dev.1158",
-    .dependencies = .{},
+    .dependencies = .{
+        // The win32-compatible UI library the config UI is being moved to:
+        // on Linux it is ween32's software renderer + X11 backend, on Windows
+        // the same API resolves to the real user32/gdi32.
+        .ween32 = .{ .path = "../ween32" },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",
