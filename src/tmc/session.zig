@@ -11,6 +11,7 @@ const net = std.Io.net;
 const log = @import("../common/log.zig");
 const protocol = @import("../common/protocol.zig");
 const clipboard = @import("../common/clipboard.zig");
+const keymap = @import("../common/keymap.zig");
 const switcher = @import("switcher.zig");
 
 /// Sends commands to a server, routing each to its transport. The UDP socket is
@@ -427,16 +428,22 @@ pub const Session = struct {
         }
     }
 
-    /// Release every held key on the screen being left and press it on the one
-    /// being entered, so a modifier held across a crossing is not left stuck on
-    /// the old screen nor missing on the new one. Queues the events in `pending`;
-    /// the backend forwards them after `decide`.
+    /// Hand held keys across a crossing. Every held key is *released* on the
+    /// screen being left (so nothing sticks there), but only **modifiers** are
+    /// re-pressed on the screen being entered. The hand-off exists to carry a
+    /// held modifier (Ctrl during a drag) across; a non-modifier in the held set
+    /// may be a phantom left by a timing race (a mis-tracked event), and
+    /// re-pressing it with no matching release would leave it stuck auto-repeating
+    /// on the neighbour. You rarely hold a letter/digit across a crossing anyway.
+    /// Queues the events in `pending`; the backend forwards them after `decide`.
     fn handoffModifiers(self: *Session, old_screen: ?usize, new_screen: ?usize) void {
         var i: usize = 0;
         while (i < self.held_n) : (i += 1) {
             const name = self.held[i].buf[0..self.held[i].len];
             if (old_screen) |s| self.pushPending(OutCmd.withName(@intCast(s), .key, false, name));
-            if (new_screen) |s| self.pushPending(OutCmd.withName(@intCast(s), .key, true, name));
+            if (new_screen) |s| {
+                if (keymap.isModifier(name)) self.pushPending(OutCmd.withName(@intCast(s), .key, true, name));
+            }
         }
     }
 
@@ -783,6 +790,33 @@ test "a held modifier is released on the old screen and pressed on the new one" 
     // Releasing Ctrl clears the held set.
     _ = sess.captureKey(false, "ctrl");
     try std.testing.expectEqual(@as(usize, 0), sess.held_n);
+}
+
+test "a held non-modifier is not re-pressed across a crossing (phantom-safe)" {
+    var logger = log.Logger.initStdout(undefined, .silent, "test");
+    const screens = [_]switcher.Rect{
+        .{ .x = 0, .y = 0, .w = 100, .h = 100 },
+        .{ .x = 100, .y = 0, .w = 100, .h = 100 },
+    };
+    const addrs = [_]?net.IpAddress{ null, null };
+    var sess = Session.init(undefined, &logger, &screens, &addrs);
+
+    // Hold a modifier and a digit, then cross onto the neighbour.
+    _ = sess.captureKey(true, "ctrl");
+    _ = sess.captureKey(true, "3"); // a stray/phantom-style entry
+    try std.testing.expect(sess.decide(100, 0).transition == .grab);
+
+    var pressed_ctrl = false;
+    var pressed_3 = false;
+    while (sess.nextPending()) |p| {
+        if (p.tag == .key and p.down) {
+            const nm = p.name_buf[0..p.name_len];
+            if (std.mem.eql(u8, nm, "ctrl")) pressed_ctrl = true;
+            if (std.mem.eql(u8, nm, "3")) pressed_3 = true;
+        }
+    }
+    try std.testing.expect(pressed_ctrl); // modifier carried across
+    try std.testing.expect(!pressed_3); // digit NOT re-pressed → can't stick/auto-repeat
 }
 
 test "a crossing to an unreachable neighbour is not committed" {

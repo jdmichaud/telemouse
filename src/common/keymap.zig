@@ -40,13 +40,16 @@ pub fn button(name: []const u8) ?u16 {
     return map.get(name);
 }
 
-/// Return true if `name` denotes a modifier key.
+/// Return true if `name` denotes a modifier key. Covers every alias the capture
+/// backends may produce — the bare names, `keymap.keyName` aliases, and the
+/// left/right forms from the X keysym table (see tmc/keysyms.zig).
 pub fn isModifier(name: []const u8) bool {
     const map = std.StaticStringMap(void).initComptime(.{
-        .{ "ctrl", {} },     .{ "control", {} },
-        .{ "alt", {} },      .{ "altgr", {} },
-        .{ "shift", {} },    .{ "super", {} },
-        .{ "meta", {} },     .{ "win", {} },
+        .{ "ctrl", {} },      .{ "control", {} },   .{ "leftctrl", {} },  .{ "rightctrl", {} },
+        .{ "alt", {} },       .{ "leftalt", {} },   .{ "altgr", {} },     .{ "rightalt", {} },
+        .{ "shift", {} },     .{ "leftshift", {} }, .{ "rightshift", {} },
+        .{ "super", {} },     .{ "meta", {} },      .{ "win", {} },       .{ "leftmeta", {} },
+        .{ "rightmeta", {} },
     });
     return map.has(name);
 }
