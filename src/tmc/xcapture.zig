@@ -138,17 +138,30 @@ pub const XCapture = struct {
             var buf: x.XEvent = undefined;
             _ = x.XNextEvent(self.dpy, &buf);
             const etype = @as(*const c_int, @ptrCast(@alignCast(&buf))).*;
-            if (self.grabbed) {
-                // Remote: drive off the grab's cooked events.
-                if (self.translateCore(etype, &buf)) |out| return out;
-            } else {
-                // Local: monitor via XInput2 raw events.
-                const cookie: *x.XGenericEventCookie = @ptrCast(@alignCast(&buf));
-                if (etype != GenericEvent or cookie.extension != self.xi_opcode) continue;
+            const cookie: *x.XGenericEventCookie = @ptrCast(@alignCast(&buf));
+            if (etype == GenericEvent and cookie.extension == self.xi_opcode) {
+                // A raw XInput2 event. These flow while local; but our own grab
+                // *suppresses* raw events, so any that arrive while grabbed are
+                // stragglers queued before the grab took effect. Process them
+                // either way — in particular the key-release that ends a keystroke
+                // begun just before crossing, which would otherwise be dropped and
+                // leave that key stuck "down" (auto-repeating) on the neighbour.
                 if (x.XGetEventData(self.dpy, cookie) == 0) continue;
                 const result = self.translateRaw(cookie);
                 x.XFreeEventData(self.dpy, cookie);
-                if (result) |out| return out;
+                if (result) |out| {
+                    if (!self.grabbed) return out;
+                    // While grabbed, streaming motion comes from the cooked grab
+                    // events, so ignore stale straggler motion but honour key/
+                    // button releases.
+                    switch (out) {
+                        .motion => {},
+                        else => return out,
+                    }
+                }
+            } else if (self.grabbed) {
+                // Cooked grab events (motion/button/key) while control is remote.
+                if (self.translateCore(etype, &buf)) |out| return out;
             }
         }
     }
