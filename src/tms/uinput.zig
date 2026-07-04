@@ -197,6 +197,17 @@ pub const Backend = struct {
         try self.sync();
     }
 
+    /// Release every key and mouse button (blanket unstick). A release of a key
+    /// that isn't pressed is ignored by the input core, so this needs no state.
+    pub fn releaseAll(self: *Backend) void {
+        var code: u16 = 0;
+        while (code < 256) : (code += 1) self.emit(keymap.EV_KEY, code, 0) catch {};
+        self.emit(keymap.EV_KEY, keymap.BTN_LEFT, 0) catch {};
+        self.emit(keymap.EV_KEY, keymap.BTN_RIGHT, 0) catch {};
+        self.emit(keymap.EV_KEY, keymap.BTN_MIDDLE, 0) catch {};
+        self.sync() catch {};
+    }
+
     fn emit(self: *Backend, type_: u16, code: u16, value: i32) Error!void {
         var ev = input_event{ .type = type_, .code = code, .value = value };
         try writeAll(self.fd, std.mem.asBytes(&ev));

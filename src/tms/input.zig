@@ -70,6 +70,19 @@ pub const Backend = union(enum) {
         }
     }
 
+    /// Release every key and button — a blanket "unstick" emitted when control
+    /// ends abruptly (client disconnect, shutdown, or a crash signal), so a held
+    /// modifier like Ctrl is never left pressed on this machine. A key-up for a
+    /// key that isn't down is a harmless no-op, so no per-key bookkeeping is
+    /// needed. Best-effort: errors are swallowed (it may run from a signal
+    /// handler).
+    pub fn releaseAll(self: *Backend) void {
+        switch (self.*) {
+            .dry => {},
+            .native => |*b| b.releaseAll(),
+        }
+    }
+
     /// A human-readable name for the active backend, for logging.
     pub fn describe(self: *const Backend) []const u8 {
         switch (self.*) {

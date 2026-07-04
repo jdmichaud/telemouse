@@ -159,6 +159,18 @@ pub const Backend = struct {
         if (dy != 0) try sendWheel(MOUSEEVENTF_WHEEL, dy * 120);
         if (dx != 0) try sendWheel(MOUSEEVENTF_HWHEEL, dx * 120);
     }
+
+    /// Release every keyboard key and mouse button (blanket unstick). A key-up
+    /// for a key that isn't down is a harmless no-op. VKs 0x01-0x07 are the mouse
+    /// buttons, released separately below; 0x08.. are keyboard keys.
+    pub fn releaseAll(self: *Backend) void {
+        _ = self;
+        var vk: WORD = 0x08;
+        while (vk <= 0xFE) : (vk += 1) sendKey(vk, true) catch {};
+        sendMouse(MOUSEEVENTF_LEFTUP) catch {};
+        sendMouse(MOUSEEVENTF_RIGHTUP) catch {};
+        sendMouse(MOUSEEVENTF_MIDDLEUP) catch {};
+    }
 };
 
 fn sendMouse(flags: DWORD) Error!void {

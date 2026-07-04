@@ -62,6 +62,18 @@ pub const Backend = struct {
         _ = XCloseDisplay(self.dpy);
     }
 
+    /// Release every key and button (blanket unstick). X keycodes 8..255 cover
+    /// all evdev codes (evdev = X keycode - 8); a release of a key that isn't
+    /// pressed is a no-op. Best-effort — safe to call before we exit.
+    pub fn releaseAll(self: *Backend) void {
+        var kc: c_uint = 8;
+        while (kc < 256) : (kc += 1) _ = self.fake_key(self.dpy, kc, 0, 0);
+        _ = self.fake_button(self.dpy, 1, 0, 0);
+        _ = self.fake_button(self.dpy, 2, 0, 0);
+        _ = self.fake_button(self.dpy, 3, 0, 0);
+        self.flush();
+    }
+
     fn flush(self: *Backend) void {
         _ = XFlush(self.dpy);
     }

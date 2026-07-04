@@ -32,11 +32,29 @@ const version = "0.1.0";
 
 /// Set by the SIGINT/SIGTERM (or Windows console) handler so the event loop can
 /// return cleanly and let `main`'s deferred cleanup run — most importantly
-/// destroying the uinput device, which releases any keys the device holds.
+/// releasing held keys and destroying the uinput device.
 var g_shutdown = std.atomic.Value(bool).init(false);
 
-fn onPosixSignal(_: std.posix.SIG) callconv(.c) void {
-    g_shutdown.store(true, .monotonic);
+/// The active input backend, so a crash signal can release held keys (XTEST key
+/// state lives in the X server and would otherwise survive a crash). Set in main.
+var g_backend: ?*input.Backend = null;
+var g_in_signal = std.atomic.Value(bool).init(false);
+
+fn onPosixSignal(sig: std.posix.SIG) callconv(.c) void {
+    const posix = std.posix;
+    if (sig == posix.SIG.INT or sig == posix.SIG.TERM) {
+        // Graceful: let the event loop unwind and release keys cleanly (doing X
+        // calls here would be async-signal-unsafe).
+        g_shutdown.store(true, .monotonic);
+        return;
+    }
+    // A crash (SEGV/ABRT/BUS/ILL — a panic aborts, landing here too): no loop
+    // will run, so release everything now (best-effort) and exit. Guarded so a
+    // fault inside the release can't loop back in.
+    if (!g_in_signal.swap(true, .monotonic)) {
+        if (g_backend) |b| b.releaseAll();
+    }
+    std.process.exit(1);
 }
 
 fn onWindowsCtrl(_: u32) callconv(.winapi) i32 {
@@ -60,6 +78,11 @@ fn installShutdownHandler() void {
             };
             posix.sigaction(posix.SIG.INT, &act, null);
             posix.sigaction(posix.SIG.TERM, &act, null);
+            // Also catch crash signals so a modifier isn't left stuck on a bug.
+            posix.sigaction(posix.SIG.SEGV, &act, null);
+            posix.sigaction(posix.SIG.ABRT, &act, null);
+            posix.sigaction(posix.SIG.BUS, &act, null);
+            posix.sigaction(posix.SIG.ILL, &act, null);
         },
         .windows => _ = SetConsoleCtrlHandler(onWindowsCtrl, 1),
         else => {},
@@ -348,6 +371,7 @@ pub fn main(init: std.process.Init) !void {
         std.process.exit(1);
     };
     defer backend.deinit();
+    g_backend = &backend; // let the crash-signal handler release held keys
     if (dry_run)
         logger.info("dry-run mode: input events are logged (debug), not emitted", .{})
     else
@@ -481,14 +505,20 @@ fn eventLoop(io: Io, server: *Server, udp: net.Socket, tcp: *net.Server) void {
                 } else {
                     if (kbd) |stream| stream.close(io);
                     kbd = null;
-                    // The controlling client is gone: hand the machine back to
-                    // local control with the cursor revealed at the screen centre.
+                    // The controlling client is gone: release all keys/buttons (so
+                    // nothing is left stuck) and hand the machine back to local
+                    // control with the cursor revealed at the screen centre.
+                    server.backend.releaseAll();
                     server.revealAtCentre();
                     server.logger.debug("keyboard client disconnected", .{});
                 }
             },
         }
     }
+
+    // Release all keys/buttons so a modifier isn't left stuck on this machine
+    // after we exit.
+    server.backend.releaseAll();
 
     // Drain the in-flight async operations before the caller closes the sockets,
     // otherwise a pending receive/accept would fault on a closed fd.

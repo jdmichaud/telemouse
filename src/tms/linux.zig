@@ -57,6 +57,13 @@ pub const Backend = union(enum) {
         };
     }
 
+    pub fn releaseAll(self: *Backend) void {
+        switch (self.*) {
+            .uinput => |*b| b.releaseAll(),
+            .xtest => |*b| b.releaseAll(),
+        }
+    }
+
     pub fn mouseMove(self: *Backend, x: i32, y: i32) Error!void {
         return switch (self.*) {
             .uinput => |*b| b.mouseMove(x, y),
