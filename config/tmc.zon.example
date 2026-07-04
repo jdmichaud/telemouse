@@ -25,6 +25,10 @@
     // How long (milliseconds) a discovery scan waits for replies.
     .discover_timeout_ms = 600,
 
+    // Linux capture backend: "auto" (XInput2 on an X11 session, else evdev),
+    // "xinput", or "evdev" (force /dev/input). Ignored on Windows.
+    .capture = "auto",
+
     // (The client's own screen resolution is auto-detected from the display; it
     // is not configured here. In `.screens` below it is the first entry.)
 

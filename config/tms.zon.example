@@ -30,6 +30,10 @@
     // Name of the virtual input device created on Linux.
     .device_name = "telemouse virtual input",
 
+    // Linux injection backend: "auto" (XTEST on an X11 session, else uinput),
+    // "xtest", or "kernel" (force uinput). Ignored on Windows.
+    .backend = "auto",
+
     // When true, commands are logged but no real input is emitted. Handy for
     // testing without a display or the required device permissions.
     .dry_run = false,
